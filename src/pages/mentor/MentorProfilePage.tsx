@@ -33,11 +33,7 @@ const MentorProfilePage = () => {
                   <p className="text-muted-foreground flex items-center gap-1 mt-1">
                     <Mail className="h-4 w-4" /> sarah.chen@alumni.edu
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {["React", "Python", "System Design"].map((s) => (
-                      <Badge key={s} variant="secondary">{s}</Badge>
-                    ))}
-                  </div>
+
                 </div>
               </div>
             </CardContent>

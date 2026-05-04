@@ -4,7 +4,6 @@ import {
   Route,
   Briefcase,
   Video,
-  MessageSquare,
   User,
   Shield,
   GraduationCap,
@@ -30,7 +29,6 @@ const mainItems = [
   { title: "Mentors", url: "/mentors", icon: Users },
   { title: "Job Referrals", url: "/jobs", icon: Briefcase },
   { title: "Webinars", url: "/webinars", icon: Video },
-  { title: "Discussion Forum", url: "/forum", icon: MessageSquare },
 ];
 
 

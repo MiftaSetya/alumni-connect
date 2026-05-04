@@ -6,6 +6,19 @@ import { webinars } from "@/data/mock-data";
 import { Calendar, Clock, Users, Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const MentorWebinarsPage = () => {
   return (
@@ -33,9 +46,58 @@ const MentorWebinarsPage = () => {
                     <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {w.attendees}/{w.maxAttendees}</span>
                   </div>
                   <div className="flex gap-2 mt-auto">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => toast.success("Edit webinar form coming soon!")}>
-                      <Edit className="h-4 w-4 mr-1.5" /> Edit
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Edit className="h-4 w-4 mr-1.5" /> Edit
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Edit Webinar</DialogTitle>
+                          <DialogDescription>
+                            Make changes to your webinar here. Click save when you're done.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor={`title-${w.id}`} className="text-right">
+                              Title
+                            </Label>
+                            <Input id={`title-${w.id}`} defaultValue={w.title} className="col-span-3" />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor={`desc-${w.id}`} className="text-right">
+                              Description
+                            </Label>
+                            <Textarea id={`desc-${w.id}`} defaultValue={w.description} className="col-span-3" />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor={`date-${w.id}`} className="text-right">
+                              Date
+                            </Label>
+                            <Input id={`date-${w.id}`} defaultValue={w.date} className="col-span-3" />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor={`time-${w.id}`} className="text-right">
+                              Time
+                            </Label>
+                            <Input id={`time-${w.id}`} defaultValue={w.time} className="col-span-3" />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor={`capacity-${w.id}`} className="text-right">
+                              Capacity
+                            </Label>
+                            <Input id={`capacity-${w.id}`} type="number" defaultValue={w.maxAttendees} className="col-span-3" />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button type="button" onClick={() => toast.success("Webinar updated successfully!")}>Save changes</Button>
+                          </DialogClose>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                     <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => toast.success("Webinar deleted")}>
                       <Trash2 className="h-4 w-4" />
                     </Button>

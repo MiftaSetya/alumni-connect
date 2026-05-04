@@ -6,6 +6,8 @@ import { adminStats, mentors, jobs } from "@/data/mock-data";
 import { Users, Briefcase, Shield, Video, CheckCircle, XCircle, UserCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const stats = [
   { label: "Total Students", value: adminStats.totalStudents, icon: Users, color: "text-primary" },
@@ -15,6 +17,8 @@ const stats = [
 ];
 
 const AdminPage = () => {
+  const [selectedAlumni, setSelectedAlumni] = useState<typeof mentors[0] | null>(null);
+
   return (
     <DashboardLayout title="Admin Dashboard" showSidebar={false} showProfile={false}>
       <div className="space-y-6 w-full">
@@ -43,16 +47,16 @@ const AdminPage = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               {mentors.slice(0, 3).map((m) => (
-                <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div>
+                <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <div className="cursor-pointer flex-1" onClick={() => setSelectedAlumni(m)}>
                     <p className="text-sm font-semibold text-foreground">{m.name}</p>
                     <p className="text-xs text-muted-foreground">{m.title} at {m.company}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" className="text-success hover:bg-success/10" onClick={() => toast.success("Alumni verified")}>
+                    <Button size="icon" variant="ghost" className="text-success hover:bg-success/10" onClick={() => toast.success("Alumni verified")}>
                       <CheckCircle className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => toast.error("Alumni rejected")}>
+                    <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => toast.error("Alumni rejected")}>
                       <XCircle className="h-4 w-4" />
                     </Button>
                   </div>
@@ -79,6 +83,52 @@ const AdminPage = () => {
           </Card>
         </div>
       </div>
+
+      <Dialog open={!!selectedAlumni} onOpenChange={(open) => !open && setSelectedAlumni(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          {selectedAlumni && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Alumni Details</DialogTitle>
+                <DialogDescription>Review details before verifying this alumni.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <h4 className="text-sm font-medium text-foreground mb-1">Full Name</h4>
+                  <p className="text-sm text-muted-foreground">{selectedAlumni.name}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-foreground mb-1">Current Role</h4>
+                  <p className="text-sm text-muted-foreground">{selectedAlumni.title} at {selectedAlumni.company}</p>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium text-foreground mb-1">Graduation Year</h4>
+                  <p className="text-sm text-muted-foreground">{selectedAlumni.graduationYear}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-foreground mb-1">Bio</h4>
+                  <p className="text-sm text-muted-foreground">{selectedAlumni.bio}</p>
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => {
+                  toast.error("Alumni rejected");
+                  setSelectedAlumni(null);
+                }}>
+                  Reject
+                </Button>
+                <Button className="bg-success text-success-foreground hover:bg-success/90" onClick={() => {
+                  toast.success("Alumni verified");
+                  setSelectedAlumni(null);
+                }}>
+                  Verify Alumni
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

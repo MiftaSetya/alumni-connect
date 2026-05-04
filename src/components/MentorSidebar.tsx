@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   Briefcase,
   Video,
-  MessageSquare,
   GraduationCap,
   LogOut,
   CalendarCheck,
@@ -27,7 +26,6 @@ const mainItems = [
   { title: "Mentoring Sessions", url: "/mentor/sessions", icon: CalendarCheck },
   { title: "Post Job", url: "/mentor/post-job", icon: Briefcase },
   { title: "Webinars", url: "/mentor/webinars", icon: Video },
-  { title: "Discussion Forum", url: "/mentor/forum", icon: MessageSquare },
 ];
 
 

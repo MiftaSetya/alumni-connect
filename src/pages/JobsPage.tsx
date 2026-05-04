@@ -13,6 +13,7 @@ import { useState } from "react";
 
 const JobsPage = () => {
   const [showModal, setShowModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<typeof jobs[0] | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     company: "",
@@ -42,7 +43,7 @@ const JobsPage = () => {
         <div className="space-y-4">
           {jobs.map((j, i) => (
             <motion.div key={j.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-              <Card className="card-elevated">
+              <Card className="card-elevated cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setSelectedJob(j)}>
                 <CardContent className="p-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-start gap-4">
@@ -145,6 +146,36 @@ const JobsPage = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Job Details Modal */}
+      <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          {selectedJob && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedJob.title}</DialogTitle>
+                <DialogDescription>{selectedJob.company}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {selectedJob.location}</span>
+                  <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> Deadline: {selectedJob.deadline}</span>
+                  <Badge variant="secondary">{selectedJob.type}</Badge>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-1">Description</h4>
+                  <p className="text-sm text-muted-foreground">{selectedJob.description}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-1">Posted By</h4>
+                  <p className="text-sm text-muted-foreground">{selectedJob.postedBy}</p>
+                </div>
+              </div>
+
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </DashboardLayout>

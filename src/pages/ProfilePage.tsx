@@ -2,7 +2,6 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Save, Mail, MapPin, GraduationCap, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
@@ -33,11 +32,6 @@ const ProfilePage = () => {
                   <p className="text-muted-foreground flex items-center gap-1 mt-1">
                     <Mail className="h-4 w-4" /> alex@university.edu
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {["React", "Python", "Machine Learning", "Data Analysis"].map((s) => (
-                      <Badge key={s} variant="secondary">{s}</Badge>
-                    ))}
-                  </div>
                 </div>
               </div>
             </CardContent>

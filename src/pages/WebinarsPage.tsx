@@ -6,6 +6,17 @@ import { webinars } from "@/data/mock-data";
 import { Calendar, Clock, Users } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const WebinarsPage = () => {
   return (
@@ -28,12 +39,27 @@ const WebinarsPage = () => {
                     <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {w.time}</span>
                     <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {w.attendees}/{w.maxAttendees}</span>
                   </div>
-                  <Button
-                    className="mt-auto gradient-primary text-primary-foreground"
-                    onClick={() => toast.success("Registered for webinar!")}
-                  >
-                    Register
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button className="mt-auto gradient-primary text-primary-foreground">
+                        Register
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Konfirmasi Pendaftaran</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Apakah Anda yakin ingin mendaftar ke webinar "{w.title}"?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => toast.success("Berhasil mendaftar ke webinar!")}>
+                          Ya, Daftar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </CardContent>
               </Card>
             </motion.div>

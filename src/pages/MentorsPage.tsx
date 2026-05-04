@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { mentors } from "@/data/mock-data";
@@ -68,11 +67,7 @@ const MentorsPage = () => {
                     <span>Class of {m.graduationYear}</span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">{m.bio}</p>
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {m.skills.map((s) => (
-                      <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
-                    ))}
-                  </div>
+
                 </CardContent>
               </Card>
             </motion.div>
@@ -124,14 +119,7 @@ const MentorsPage = () => {
                   <p className="text-sm">{selectedMentor.bio}</p>
                 </div>
 
-                <div>
-                  <p className="text-muted-foreground text-sm mb-2">Skills</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedMentor.skills.map((s) => (
-                      <Badge key={s} variant="secondary">{s}</Badge>
-                    ))}
-                  </div>
-                </div>
+
               </div>
               <DialogFooter className="sm:justify-start">
                 <div className="flex gap-2 w-full">
