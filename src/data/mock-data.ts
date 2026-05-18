@@ -142,7 +142,6 @@ export const webinars = [
     attendees: 156,
     maxAttendees: 200,
     description: "Learn from industry professionals about starting your tech career.",
-    tags: ["Technology", "Career"],
   },
   {
     id: "2",
@@ -153,7 +152,6 @@ export const webinars = [
     attendees: 89,
     maxAttendees: 150,
     description: "Navigate the transition from university to Wall Street.",
-    tags: ["Finance", "Career"],
   },
   {
     id: "3",
@@ -164,7 +162,6 @@ export const webinars = [
     attendees: 72,
     maxAttendees: 100,
     description: "Hands-on workshop on design thinking methodology.",
-    tags: ["Design", "Workshop"],
   },
   {
     id: "4",
@@ -175,7 +172,6 @@ export const webinars = [
     attendees: 198,
     maxAttendees: 250,
     description: "Explore the future of AI and career opportunities.",
-    tags: ["AI", "Technology"],
   },
 ];
 
