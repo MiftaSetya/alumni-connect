@@ -5,15 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { jobs } from "@/data/mock-data";
 import { MapPin, Calendar, Briefcase, Plus } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
-import { useState } from "react";
+import { Swal } from "@/lib/alert";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
 const JobsPage = () => {
   const [showModal, setShowModal] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<typeof jobs[0] | null>(null);
+  const [selectedJob, setSelectedJob] = useState<any | null>(null);
+  const [jobsList, setJobsList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: "",
     company: "",
@@ -23,11 +25,37 @@ const JobsPage = () => {
     description: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getJobs();
+      setJobsList(data);
+    } catch (error) {
+      console.error("Error loading jobs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Job posted successfully!");
-    setFormData({ title: "", company: "", location: "", type: "", deadline: "", description: "" });
-    setShowModal(false);
+    if (!formData.type) {
+      Swal.error("Gagal", "Silakan pilih tipe pekerjaan terlebih dahulu.");
+      return;
+    }
+    try {
+      await api.createJob(formData);
+      await Swal.success("Berhasil", "Lowongan pekerjaan berhasil dibagikan!");
+      setFormData({ title: "", company: "", location: "", type: "", deadline: "", description: "" });
+      setShowModal(false);
+      fetchJobs();
+    } catch (error) {
+      Swal.error("Gagal", "Gagal memposting lowongan pekerjaan.");
+    }
   };
 
   return (
@@ -40,36 +68,42 @@ const JobsPage = () => {
           </Button>
         </div>
 
-        <div className="space-y-4">
-          {jobs.map((j, i) => (
-            <motion.div key={j.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-              <Card className="card-elevated cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setSelectedJob(j)}>
-                <CardContent className="p-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                        <Briefcase className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-display font-semibold text-foreground">{j.title}</h3>
-                        <p className="text-sm text-primary font-medium">{j.company}</p>
-                        <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {j.location}</span>
-                          <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Deadline: {j.deadline}</span>
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground animate-pulse">
+            Loading job referrals...
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {jobsList.map((j, i) => (
+              <motion.div key={j.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                <Card className="card-elevated cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setSelectedJob(j)}>
+                  <CardContent className="p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                          <Briefcase className="h-6 w-6 text-primary" />
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">{j.description}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Posted by {j.postedBy}</p>
+                        <div>
+                          <h3 className="font-display font-semibold text-foreground">{j.title}</h3>
+                          <p className="text-sm text-primary font-medium">{j.company}</p>
+                          <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {j.location}</span>
+                            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Deadline: {j.deadline}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">{j.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Posted by {j.postedBy}</p>
+                        </div>
+                      </div>
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2">
+                        <Badge variant="secondary">{j.type}</Badge>
                       </div>
                     </div>
-                    <div className="flex sm:flex-col items-center sm:items-end gap-2">
-                      <Badge variant="secondary">{j.type}</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Post Job Modal */}
@@ -141,7 +175,7 @@ const JobsPage = () => {
               />
             </div>
             <DialogFooter>
-              <Button type="submit" className="w-full gradient-primary text-primary-foreground">
+              <Button type="submit" className="w-full gradient-primary text-primary-foreground font-semibold h-11">
                 <Plus className="h-4 w-4 mr-2" /> Post Job
               </Button>
             </DialogFooter>
@@ -173,7 +207,6 @@ const JobsPage = () => {
                   <p className="text-sm text-muted-foreground">{selectedJob.postedBy}</p>
                 </div>
               </div>
-
             </>
           )}
         </DialogContent>

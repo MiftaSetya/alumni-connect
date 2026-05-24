@@ -4,6 +4,8 @@ import { Bell } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
 interface MentorLayoutProps {
   children: React.ReactNode;
@@ -11,6 +13,23 @@ interface MentorLayoutProps {
 }
 
 export function MentorLayout({ children, title }: MentorLayoutProps) {
+  const [userInitials, setUserInitials] = useState("SC");
+
+  useEffect(() => {
+    const authUser = api.getAuthUser();
+    if (authUser) {
+      const profile = authUser.mentor_profile || authUser.student_profile;
+      const fullName: string = profile?.full_name || authUser.email || "";
+      if (fullName) {
+        const parts = fullName.trim().split(" ");
+        const initials = parts.length >= 2
+          ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+          : fullName.substring(0, 2).toUpperCase();
+        setUserInitials(initials);
+      }
+    }
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -33,7 +52,7 @@ export function MentorLayout({ children, title }: MentorLayoutProps) {
               <Link to="/mentor/profile">
                 <Avatar className="h-8 w-8 hover:opacity-80 transition-opacity cursor-pointer">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                    SC
+                    {userInitials}
                   </AvatarFallback>
                 </Avatar>
               </Link>

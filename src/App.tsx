@@ -1,7 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -12,16 +10,13 @@ import CareerPathsPage from "./pages/CareerPathsPage";
 import CareerTimelinePage from "./pages/CareerTimelinePage";
 import JobsPage from "./pages/JobsPage";
 import WebinarsPage from "./pages/WebinarsPage";
-import ForumPage from "./pages/ForumPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
-// Mentor (Alumni) pages
 import MentorDashboardPage from "./pages/mentor/MentorDashboardPage";
 import MentorSessionsPage from "./pages/mentor/MentorSessionsPage";
 import MentorPostJobPage from "./pages/mentor/MentorPostJobPage";
 import MentorWebinarsPage from "./pages/mentor/MentorWebinarsPage";
-import MentorForumPage from "./pages/mentor/MentorForumPage";
 import MentorProfilePage from "./pages/mentor/MentorProfilePage";
 
 const queryClient = new QueryClient();
@@ -29,8 +24,6 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
@@ -43,15 +36,12 @@ const App = () => (
           <Route path="/career-paths/:id" element={<CareerTimelinePage />} />
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/webinars" element={<WebinarsPage />} />
-          <Route path="/forum" element={<ForumPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/admin/dashboard" element={<AdminPage />} />
-          {/* Mentor (Alumni) routes */}
           <Route path="/mentor/dashboard" element={<MentorDashboardPage />} />
           <Route path="/mentor/sessions" element={<MentorSessionsPage />} />
           <Route path="/mentor/post-job" element={<MentorPostJobPage />} />
           <Route path="/mentor/webinars" element={<MentorWebinarsPage />} />
-          <Route path="/mentor/forum" element={<MentorForumPage />} />
           <Route path="/mentor/profile" element={<MentorProfilePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

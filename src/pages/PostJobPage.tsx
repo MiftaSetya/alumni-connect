@@ -8,15 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import { Swal } from "@/lib/alert";
 
 const PostJobPage = () => {
   const navigate = useNavigate();
   const [jobType, setJobType] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Job referral posted successfully!");
+    await Swal.success("Berhasil", "Rujukan lowongan pekerjaan berhasil dibagikan!");
     navigate("/jobs");
   };
 

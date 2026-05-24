@@ -5,16 +5,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { api } from "@/lib/api";
+import { Swal } from "@/lib/alert";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    if (!email || !password) {
+      Swal.error("Login Gagal", "Silakan masukkan email dan password Anda.");
+      return;
+    }
+    try {
+      const data = await api.login(email, password);
+      await Swal.fire({
+        title: "Login Berhasil!",
+        description: "Selamat datang kembali di AlumniHub.",
+        type: "success",
+        confirmText: "Masuk Dashboard",
+      });
+      if (data.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (data.user.role === "alumni") {
+        navigate("/mentor/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      Swal.error("Login Gagal", error.message || "Email atau password salah.");
+    }
   };
+
 
   return (
     <div className="min-h-screen flex">
@@ -22,7 +46,7 @@ const LoginPage = () => {
         <div className="max-w-lg text-center">
           <GraduationCap className="h-16 w-16 text-primary-foreground mx-auto mb-6" />
           <h1 className="text-4xl font-display font-bold text-primary-foreground mb-4">
-            AlumniConnect
+            AlumniHub
           </h1>
           <p className="text-primary-foreground/80 text-lg leading-relaxed">
             Connect with alumni mentors, explore career paths, and discover opportunities that shape your future.
@@ -37,7 +61,7 @@ const LoginPage = () => {
               <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center">
                 <GraduationCap className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="font-display text-xl font-bold">AlumniConnect</span>
+              <span className="font-display text-xl font-bold">AlumniHub</span>
             </div>
             <h2 className="text-2xl font-display font-bold text-foreground">Welcome back</h2>
             <p className="text-muted-foreground text-sm">Sign in to your account to continue</p>

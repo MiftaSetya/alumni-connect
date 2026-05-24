@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,25 +8,78 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mentors } from "@/data/mock-data";
 import { Calendar, Clock, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import { Swal } from "@/lib/alert";
+import { api } from "@/lib/api";
 
 const BookMentoringPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const mentor = mentors.find((m) => m.id === id);
+  const [mentor, setMentor] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [topic, setTopic] = useState("");
 
-  if (!mentor) return <DashboardLayout title="Mentor Not Found"><p>Mentor not found.</p></DashboardLayout>;
+  useEffect(() => {
+    const fetchMentor = async () => {
+      try {
+        setLoading(true);
+        const mentorsList = await api.getMentors();
+        const found = mentorsList.find((m: any) => m.id === id);
+        setMentor(found);
+      } catch (error) {
+        console.error("Error loading mentor:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMentor();
+  }, [id]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Mentoring session booked successfully!");
-    navigate("/mentors");
+    if (!mentor) return;
+    try {
+      await api.bookMentorshipSession({
+        mentor_id: mentor.id,
+        topic,
+        date,
+        time,
+        message: topic,
+      });
+      await Swal.success(
+        "Pemesanan Berhasil",
+        `Sesi mentoring bersama ${mentor.name} berhasil diajukan! Silakan tunggu konfirmasi.`
+      );
+      navigate("/mentors");
+    } catch (error) {
+      Swal.error("Gagal", "Gagal melakukan pemesanan sesi mentoring.");
+    }
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Book Mentoring Session">
+        <div className="text-center py-12 text-muted-foreground animate-pulse">Loading mentor details...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!mentor) {
+    return (
+      <DashboardLayout title="Mentor Not Found">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Mentor not found.</p>
+          <Button variant="ghost" onClick={() => navigate(-1)} className="mt-4">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const initialAvatar = mentor.name ? mentor.name.substring(0, 2).toUpperCase() : "M";
 
   return (
     <DashboardLayout title="Book Mentoring Session">
@@ -39,7 +92,7 @@ const BookMentoringPage = () => {
           <CardHeader>
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-primary/10 text-primary font-semibold">{mentor.avatar}</AvatarFallback>
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initialAvatar}</AvatarFallback>
               </Avatar>
               <div>
                 <CardTitle className="font-display">{mentor.name}</CardTitle>
@@ -65,7 +118,7 @@ const BookMentoringPage = () => {
                       <SelectValue placeholder="Select time" />
                     </SelectTrigger>
                     <SelectContent>
-                      {["9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"].map((t) => (
+                      {["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"].map((t) => (
                         <SelectItem key={t} value={t}>{t}</SelectItem>
                       ))}
                     </SelectContent>

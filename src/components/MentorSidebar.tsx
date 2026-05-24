@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { Swal } from "@/lib/alert";
 import {
   Sidebar,
   SidebarContent,
@@ -77,15 +78,26 @@ export function MentorSidebar() {
       </SidebarContent>
 
       <SidebarFooter className={collapsed ? "p-2" : "p-4"}>
-        <NavLink
-          to="/login"
-          className={`flex items-center rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors ${
+        <button
+          onClick={async () => {
+            const confirmed = await Swal.confirm(
+              "Konfirmasi Logout",
+              "Apakah Anda yakin ingin keluar dari AlumniHub?",
+              "warning"
+            );
+            if (confirmed) {
+              localStorage.removeItem("alumni_connect_token");
+              localStorage.removeItem("alumni_connect_user");
+              window.location.href = "/login";
+            }
+          }}
+          className={`w-full flex items-center rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors ${
             collapsed ? "justify-center p-2.5" : "gap-3 px-4 py-2.5"
           }`}
         >
           <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
           {!collapsed && <span>Logout</span>}
-        </NavLink>
+        </button>
       </SidebarFooter>
     </Sidebar>
   );

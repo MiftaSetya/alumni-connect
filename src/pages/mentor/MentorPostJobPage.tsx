@@ -5,14 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { jobs } from "@/data/mock-data";
 import { MapPin, Calendar, Briefcase, Plus, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
-import { useState } from "react";
+import { Swal } from "@/lib/alert";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
 const MentorPostJobPage = () => {
   const [showModal, setShowModal] = useState(false);
+  const [jobsList, setJobsList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: "",
     company: "",
@@ -22,11 +24,58 @@ const MentorPostJobPage = () => {
     description: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchMyJobs = async () => {
+    try {
+      setLoading(true);
+      const authUser = api.getAuthUser();
+      const mentorName = authUser?.mentor_profile?.full_name || authUser?.student_profile?.full_name || "";
+      const allJobs = await api.getJobs();
+      const myJobs = allJobs.filter((j: any) => j.postedBy === mentorName);
+      setJobsList(myJobs);
+    } catch (error) {
+      console.error("Error loading my jobs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyJobs();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Job posted successfully!");
-    setFormData({ title: "", company: "", location: "", type: "", deadline: "", description: "" });
-    setShowModal(false);
+    if (!formData.type) {
+      Swal.error("Gagal", "Silakan pilih tipe pekerjaan.");
+      return;
+    }
+    try {
+      await api.createJob(formData);
+      await Swal.success("Berhasil", "Lowongan pekerjaan berhasil diposting!");
+      setFormData({ title: "", company: "", location: "", type: "", deadline: "", description: "" });
+      setShowModal(false);
+      fetchMyJobs();
+    } catch (error) {
+      Swal.error("Gagal", "Gagal memposting lowongan pekerjaan.");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const isConfirmed = await Swal.confirm(
+      "Hapus Lowongan",
+      "Apakah Anda yakin ingin menghapus postingan lowongan pekerjaan ini?",
+      "warning"
+    );
+
+    if (!isConfirmed) return;
+
+    try {
+      await api.deleteJob(id);
+      await Swal.success("Berhasil", "Postingan lowongan pekerjaan berhasil dihapus!");
+      fetchMyJobs();
+    } catch (error) {
+      Swal.error("Gagal", "Gagal menghapus lowongan pekerjaan.");
+    }
   };
 
   return (
@@ -42,36 +91,44 @@ const MentorPostJobPage = () => {
         {/* Your Posted Jobs */}
         <div className="space-y-4">
           <h3 className="text-base font-display font-semibold text-foreground">Your Posted Jobs</h3>
-          {jobs.map((j, i) => (
-            <motion.div key={j.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-              <Card className="card-elevated">
-                <CardContent className="p-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                        <Briefcase className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-display font-semibold text-foreground">{j.title}</h3>
-                        <p className="text-sm text-primary font-medium">{j.company}</p>
-                        <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {j.location}</span>
-                          <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Deadline: {j.deadline}</span>
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground animate-pulse">Loading posted jobs...</div>
+          ) : jobsList.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border border-dashed rounded-lg bg-card/50">
+              You haven't posted any jobs yet. Click "Post Job" to share an opportunity!
+            </div>
+          ) : (
+            jobsList.map((j, i) => (
+              <motion.div key={j.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                <Card className="card-elevated">
+                  <CardContent className="p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                          <Briefcase className="h-6 w-6 text-primary" />
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">{j.description}</p>
+                        <div>
+                          <h3 className="font-display font-semibold text-foreground">{j.title}</h3>
+                          <p className="text-sm text-primary font-medium">{j.company}</p>
+                          <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {j.location}</span>
+                            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Deadline: {j.deadline}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">{j.description}</p>
+                        </div>
+                      </div>
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2">
+                        <Badge variant="secondary">{j.type}</Badge>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(j.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex sm:flex-col items-center sm:items-end gap-2">
-                      <Badge variant="secondary">{j.type}</Badge>
-                      <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => toast.success("Job deleted")}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
 
@@ -144,7 +201,7 @@ const MentorPostJobPage = () => {
               />
             </div>
             <DialogFooter>
-              <Button type="submit" className="w-full gradient-primary text-primary-foreground">
+              <Button type="submit" className="w-full gradient-primary text-primary-foreground font-semibold h-11">
                 <Plus className="h-4 w-4 mr-2" /> Post Job
               </Button>
             </DialogFooter>

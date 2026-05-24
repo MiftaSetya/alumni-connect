@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,20 +6,37 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { mentors } from "@/data/mock-data";
 import { Search, Star, MessageSquare, Route } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { api } from "@/lib/api";
 
 const MentorsPage = () => {
   const [search, setSearch] = useState("");
   const [industry, setIndustry] = useState("all");
-  const [selectedMentor, setSelectedMentor] = useState<typeof mentors[0] | null>(null);
+  const [selectedMentor, setSelectedMentor] = useState<any | null>(null);
+  const [mentorsList, setMentorsList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = mentors.filter((m) => {
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getMentors();
+        setMentorsList(data);
+      } catch (error) {
+        console.error("Error fetching mentors:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMentors();
+  }, []);
+
+  const filtered = mentorsList.filter((m) => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.company.toLowerCase().includes(search.toLowerCase()) ||
-      m.skills.some((s) => s.toLowerCase().includes(search.toLowerCase()));
+      m.title.toLowerCase().includes(search.toLowerCase());
     const matchIndustry = industry === "all" || m.industry === industry;
     return matchSearch && matchIndustry;
   });
@@ -30,7 +47,7 @@ const MentorsPage = () => {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search mentors by name, company, or skills..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+            <Input placeholder="Search mentors by name, company, or title..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
           <Select value={industry} onValueChange={setIndustry}>
             <SelectTrigger className="w-full sm:w-48">
@@ -46,33 +63,38 @@ const MentorsPage = () => {
           </Select>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((m, i) => (
-            <motion.div key={m.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-              <Card className="card-elevated h-full cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setSelectedMentor(m)}>
-                <CardContent className="p-5 flex flex-col h-full">
-                  <div className="flex items-start gap-3 mb-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">{m.avatar}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-display font-semibold text-foreground">{m.name}</h3>
-                      <p className="text-sm text-muted-foreground truncate">{m.title}</p>
-                      <p className="text-sm text-primary font-medium">{m.company}</p>
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground animate-pulse">
+            Loading mentor directory...
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((m, i) => (
+              <motion.div key={m.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                <Card className="card-elevated h-full cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setSelectedMentor(m)}>
+                  <CardContent className="p-5 flex flex-col h-full">
+                    <div className="flex items-start gap-3 mb-4">
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">{m.avatar}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-display font-semibold text-foreground">{m.name}</h3>
+                        <p className="text-sm text-muted-foreground truncate">{m.title}</p>
+                        <p className="text-sm text-primary font-medium">{m.company}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-                    <span className="flex items-center gap-1 text-warning"><Star className="h-3.5 w-3.5 fill-current" /> {m.rating}</span>
-                    <span>{m.sessions} sessions</span>
-                    <span>Class of {m.graduationYear}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">{m.bio}</p>
-
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+                      <span className="flex items-center gap-1 text-warning"><Star className="h-3.5 w-3.5 fill-current" /> {m.rating}</span>
+                      <span>{m.sessions} sessions</span>
+                      <span>Class of {m.graduationYear}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">{m.bio}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       <Dialog open={!!selectedMentor} onOpenChange={(open) => !open && setSelectedMentor(null)}>
@@ -118,8 +140,6 @@ const MentorsPage = () => {
                   <p className="text-muted-foreground text-sm mb-2">About</p>
                   <p className="text-sm">{selectedMentor.bio}</p>
                 </div>
-
-
               </div>
               <DialogFooter className="sm:justify-start">
                 <div className="flex gap-2 w-full">

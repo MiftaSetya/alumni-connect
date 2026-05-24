@@ -2,25 +2,65 @@ import { MentorLayout } from "@/components/MentorLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { mentors, webinars, jobs } from "@/data/mock-data";
-import { Users, Briefcase, Video, CalendarCheck, ArrowRight, Star, Calendar } from "lucide-react";
+import { Users, Briefcase, Video, CalendarCheck, ArrowRight, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-
-const statCards = [
-  { label: "Mentees", value: "48", icon: Users, color: "text-primary" },
-  { label: "Sessions Completed", value: "156", icon: CalendarCheck, color: "text-success" },
-  { label: "Jobs Posted", value: "5", icon: Briefcase, color: "text-warning" },
-  { label: "Webinars Hosted", value: "3", icon: Video, color: "text-info" },
-];
-
-const upcomingSessions = [
-  { id: "1", mentee: "Alex Johnson", avatar: "AJ", topic: "Career Guidance in Tech", date: "2026-04-21", time: "10:00 AM" },
-  { id: "2", mentee: "Priya Sharma", avatar: "PS", topic: "Resume Review", date: "2026-04-22", time: "2:00 PM" },
-  { id: "3", mentee: "Lisa Wang", avatar: "LW", topic: "Interview Preparation", date: "2026-04-23", time: "11:00 AM" },
-];
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+import { formatDate, formatTime } from "@/lib/format";
 
 const MentorDashboardPage = () => {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [myJobs, setMyJobs] = useState<any[]>([]);
+  const [myWebinars, setMyWebinars] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const authUser = api.getAuthUser();
+    setCurrentUser(authUser);
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const name = authUser?.mentor_profile?.full_name || authUser?.student_profile?.full_name || "";
+        
+        const allJobs = await api.getJobs();
+        const allWebinars = await api.getWebinars();
+        const allSessions = await api.getMentorshipSessions();
+
+        // Filter to only show items posted/hosted by this mentor
+        const filteredJobs = allJobs.filter((j: any) => j.postedBy === name);
+        const filteredWebinars = allWebinars.filter((w: any) => w.host === name);
+
+        setMyJobs(filteredJobs);
+        setMyWebinars(filteredWebinars);
+        setSessions(allSessions);
+      } catch (error) {
+        console.error("Error fetching mentor dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const mentorName = currentUser?.mentor_profile?.full_name || currentUser?.student_profile?.full_name || "Sarah Chen";
+
+  const statCards = [
+    { label: "Mentees", value: loading ? "..." : "3", icon: Users, color: "text-primary" },
+    { label: "Sessions Completed", value: loading ? "..." : "12", icon: CalendarCheck, color: "text-success" },
+    { label: "Jobs Posted", value: loading ? "..." : myJobs.length.toString(), icon: Briefcase, color: "text-warning" },
+    { label: "Webinars Hosted", value: loading ? "..." : myWebinars.length.toString(), icon: Video, color: "text-info" },
+  ];
+
+  const upcomingSessions = [
+    { id: "1", mentee: "Alex Johnson", avatar: "AJ", topic: "Career Guidance in Tech", date: "2026-04-21", time: "10:00" },
+    { id: "2", mentee: "Priya Sharma", avatar: "PS", topic: "Resume Review", date: "2026-04-22", time: "14:00" },
+    { id: "3", mentee: "Lisa Wang", avatar: "LW", topic: "Interview Preparation", date: "2026-04-23", time: "11:00" },
+  ];
+
   return (
     <MentorLayout title="Dashboard">
       <div className="space-y-6 w-full">
@@ -31,10 +71,10 @@ const MentorDashboardPage = () => {
           className="gradient-hero rounded-xl p-6 lg:p-8"
         >
           <h2 className="text-2xl lg:text-3xl font-display font-bold text-primary-foreground mb-2">
-            Welcome back, Sarah! 👋
+            Welcome back, {mentorName}! 👋
           </h2>
           <p className="text-primary-foreground/80 max-w-xl">
-            You have 3 upcoming mentoring sessions this week. Keep inspiring the next generation!
+            You have {upcomingSessions.length} upcoming mentoring sessions this week. Keep inspiring the next generation!
           </p>
         </motion.div>
 
@@ -78,9 +118,9 @@ const MentorDashboardPage = () => {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3 w-3" /> {s.date}
+                      <Calendar className="h-3 w-3" /> {formatDate(s.date)}
                     </p>
-                    <p className="text-xs text-primary font-medium">{s.time}</p>
+                    <p className="text-xs text-primary font-medium">{formatTime(s.time)}</p>
                   </div>
                 </div>
               ))}
@@ -96,17 +136,23 @@ const MentorDashboardPage = () => {
               </Link>
             </CardHeader>
             <CardContent className="space-y-3">
-              {webinars.slice(0, 3).map((w) => (
-                <div key={w.id} className="p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <p className="text-sm font-semibold text-foreground">{w.title}</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3 w-3" /> {w.date}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{w.attendees}/{w.maxAttendees} attendees</span>
+              {loading ? (
+                <div className="text-center py-6 text-muted-foreground animate-pulse">Loading webinars...</div>
+              ) : myWebinars.length === 0 ? (
+                <div className="text-center py-6 text-xs text-muted-foreground">You haven't hosted any webinars yet.</div>
+              ) : (
+                myWebinars.slice(0, 3).map((w) => (
+                  <div key={w.id} className="p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                    <p className="text-sm font-semibold text-foreground">{w.title}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> {w.date}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{w.attendees}/{w.maxAttendees} attendees</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -119,18 +165,24 @@ const MentorDashboardPage = () => {
               </Link>
             </CardHeader>
             <CardContent className="space-y-3">
-              {jobs.slice(0, 3).map((j) => (
-                <div key={j.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Briefcase className="h-5 w-5 text-primary" />
+              {loading ? (
+                <div className="text-center py-6 text-muted-foreground animate-pulse">Loading job posts...</div>
+              ) : myJobs.length === 0 ? (
+                <div className="text-center py-6 text-xs text-muted-foreground">You haven't posted any jobs yet.</div>
+              ) : (
+                myJobs.slice(0, 3).map((j) => (
+                  <div key={j.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                      <Briefcase className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{j.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{j.company} · {j.location}</p>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">{j.type}</Badge>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{j.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{j.company} · {j.location}</p>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">{j.type}</Badge>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
