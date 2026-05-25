@@ -178,7 +178,7 @@ const MentorProfilePage = () => {
                   )}
                   {formData.graduationYear && (
                     <p className="text-muted-foreground flex items-center gap-1 mt-1 text-sm">
-                      <GraduationCap className="h-4 w-4 text-primary" /> Class of {formData.graduationYear}
+                      <GraduationCap className="h-4 w-4 text-primary" /> Graduated in {formData.graduationYear}
                     </p>
                   )}
                   <p className="text-muted-foreground flex items-center gap-1 mt-1 text-sm">
