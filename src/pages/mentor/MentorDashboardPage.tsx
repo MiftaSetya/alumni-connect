@@ -165,7 +165,7 @@ const MentorDashboardPage = () => {
                     <p className="text-sm font-semibold text-foreground">{w.title}</p>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" /> {w.date}
+                        <Calendar className="h-3 w-3" /> {formatDate(w.date)}
                       </span>
                       <span className="text-xs text-muted-foreground">{w.attendees}/{w.maxAttendees} attendees</span>
                     </div>

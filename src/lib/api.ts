@@ -370,7 +370,7 @@ export const api = {
         description: job.description,
         contactEmail: job.contact_email || "",
       };
-      mockData.jobs = [mockNewJob, ...mockData.jobs];
+      mockData.jobs.unshift(mockNewJob);
       return mockNewJob;
     }
   },
@@ -391,24 +391,22 @@ export const api = {
       });
     } catch (error) {
       console.warn("Backend unavailable, using mock updateJob.");
-      mockData.jobs = mockData.jobs.map((j: any) => {
-        if (j.id === id) {
-          const authUser = api.getAuthUser();
-          const userName = authUser?.student_profile?.full_name || authUser?.mentor_profile?.full_name || "Alumni Hub User";
-          return {
-            ...j,
-            title: job.title,
-            company: job.company,
-            location: job.location,
-            type: job.type,
-            deadline: job.deadline,
-            description: job.description,
-            contactEmail: job.contact_email || "",
-            postedBy: userName,
-          };
-        }
-        return j;
-      });
+      const jobIndex = mockData.jobs.findIndex((j: any) => j.id === id);
+      if (jobIndex !== -1) {
+        const authUser = api.getAuthUser();
+        const userName = authUser?.student_profile?.full_name || authUser?.mentor_profile?.full_name || "Alumni Hub User";
+        mockData.jobs[jobIndex] = {
+          ...mockData.jobs[jobIndex],
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          type: job.type,
+          deadline: job.deadline,
+          description: job.description,
+          contactEmail: job.contact_email || "",
+          postedBy: userName,
+        };
+      }
       return { id, ...job, postedBy: "Sarah Chen" };
     }
   },
@@ -418,7 +416,10 @@ export const api = {
       return await apiFetch(`jobs/${id}`, { method: "DELETE" });
     } catch (error) {
       console.warn("Backend unavailable, using mock deleteJob.");
-      mockData.jobs = mockData.jobs.filter((j: any) => j.id !== id);
+      const jobIndex = mockData.jobs.findIndex((j: any) => j.id === id);
+      if (jobIndex !== -1) {
+        mockData.jobs.splice(jobIndex, 1);
+      }
       return true;
     }
   },
@@ -494,7 +495,7 @@ export const api = {
         host: hostName,
         isRegistered: false,
       };
-      mockData.webinars = [newWebinar, ...mockData.webinars];
+      mockData.webinars.unshift(newWebinar);
       return newWebinar;
     }
   },
@@ -514,23 +515,21 @@ export const api = {
       });
     } catch (error) {
       console.warn("Backend unavailable, using mock updateWebinar.");
-      mockData.webinars = mockData.webinars.map((w: any) => {
-        if (w.id === id) {
-          const authUser = api.getAuthUser();
-          const hostName = authUser?.mentor_profile?.full_name || authUser?.student_profile?.full_name || "Alumni Hub User";
-          return {
-            ...w,
-            title: webinar.title,
-            description: webinar.description,
-            date: webinar.date,
-            time: webinar.time,
-            maxAttendees: webinar.max_attendees,
-            meet_link: webinar.meet_link,
-            host: hostName,
-          };
-        }
-        return w;
-      });
+      const webinarIndex = mockData.webinars.findIndex((w: any) => w.id === id);
+      if (webinarIndex !== -1) {
+        const authUser = api.getAuthUser();
+        const hostName = authUser?.mentor_profile?.full_name || authUser?.student_profile?.full_name || "Alumni Hub User";
+        mockData.webinars[webinarIndex] = {
+          ...mockData.webinars[webinarIndex],
+          title: webinar.title,
+          description: webinar.description,
+          date: webinar.date,
+          time: webinar.time,
+          maxAttendees: webinar.max_attendees,
+          meet_link: webinar.meet_link,
+          host: hostName,
+        };
+      }
       const authUser = api.getAuthUser();
       const hostName = authUser?.mentor_profile?.full_name || authUser?.student_profile?.full_name || "AlumniHub User";
       return { id, ...webinar, attendees: 0, host: hostName };
@@ -557,6 +556,7 @@ export const api = {
         currentTitle: cp.title || "Mentor",
         company: cp.company || "AlumniHub",
         timeline: cp.career_milestones ? cp.career_milestones.map((m: any) => ({
+          id: m.id,
           year: m.year,
           title: m.title,
           org: m.org,
@@ -579,6 +579,7 @@ export const api = {
         currentTitle: cp.title || "Mentor",
         company: cp.company || "AlumniHub",
         timeline: cp.career_milestones ? cp.career_milestones.map((m: any) => ({
+          id: m.id,
           year: m.year,
           title: m.title,
           org: m.org,
@@ -589,6 +590,37 @@ export const api = {
       console.warn("Backend unavailable, falling back to mock career path.");
       const found = mockData.careerPaths.find((c) => c.id === id);
       return found || null;
+    }
+  },
+
+  createCareerMilestone: async (milestone: {
+    year: string;
+    title: string;
+    org: string;
+    type: "education" | "job" | "promotion";
+  }) => {
+    try {
+      return await apiFetch("career-paths", {
+        method: "POST",
+        body: JSON.stringify(milestone),
+      });
+    } catch (error) {
+      console.warn("Backend unavailable, using mock createCareerMilestone.");
+      return {
+        id: Math.random().toString(),
+        ...milestone,
+      };
+    }
+  },
+
+  deleteCareerMilestone: async (id: string) => {
+    try {
+      return await apiFetch(`career-paths/${id}`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.warn("Backend unavailable, using mock deleteCareerMilestone.");
+      return true;
     }
   },
 

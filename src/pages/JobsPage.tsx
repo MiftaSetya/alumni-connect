@@ -11,6 +11,7 @@ import { Swal } from "@/lib/alert";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatDate } from "@/lib/format";
 
 const JobsPage = () => {
   const [showModal, setShowModal] = useState(false);
@@ -130,7 +131,7 @@ const JobsPage = () => {
                 <p className="text-sm text-primary font-medium">{j.company}</p>
                 <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {j.location}</span>
-                  <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Deadline: {j.deadline}</span>
+                  <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Deadline: {formatDate(j.deadline)}</span>
                   {j.contactEmail && (
                     <span className="flex items-center gap-1 text-primary/80">
                       <Mail className="h-3.5 w-3.5" /> {j.contactEmail}
@@ -333,7 +334,7 @@ const JobsPage = () => {
               <div className="space-y-4 py-4">
                 <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {selectedJob.location}</span>
-                  <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> Deadline: {selectedJob.deadline}</span>
+                  <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> Deadline: {formatDate(selectedJob.deadline)}</span>
                   <Badge variant="secondary">{selectedJob.type}</Badge>
                 </div>
                 <div>

@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 
 const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
@@ -147,7 +148,7 @@ const DashboardPage = () => {
                           {session.status}
                         </span>
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" /> {session.date ? session.date.split("T")[0] : ""}
+                           <Calendar className="h-3 w-3 text-muted-foreground" /> {session.date ? formatDate(session.date) : ""}
                         </span>
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3 text-muted-foreground" /> {session.time}
@@ -206,7 +207,7 @@ const DashboardPage = () => {
                     <p className="text-sm font-semibold text-foreground">{w.title}</p>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" /> {w.date}
+                         <Calendar className="h-3 w-3" /> {formatDate(w.date)}
                       </span>
                       <span className="text-xs text-muted-foreground">{w.attendees}/{w.maxAttendees} attendees</span>
                     </div>

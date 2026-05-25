@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { Swal } from "@/lib/alert";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 
 const MentorPostJobPage = () => {
   const [showModal, setShowModal] = useState(false);
@@ -154,7 +155,7 @@ const MentorPostJobPage = () => {
                           <p className="text-sm text-primary font-medium">{j.company}</p>
                           <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {j.location}</span>
-                            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Deadline: {j.deadline}</span>
+                            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Deadline: {formatDate(j.deadline)}</span>
                             {j.contactEmail && (
                               <span className="flex items-center gap-1 text-primary/80">
                                 <Mail className="h-3.5 w-3.5" /> {j.contactEmail}
