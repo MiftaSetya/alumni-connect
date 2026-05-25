@@ -1,7 +1,7 @@
 import { MentorLayout } from "@/components/MentorLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, Plus, Trash2, Video } from "lucide-react";
+import { Calendar, Clock, Users, Plus, Trash2, Video, Pencil } from "lucide-react";
 import { Swal } from "@/lib/alert";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -20,10 +20,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 const MentorWebinarsPage = () => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingWebinarId, setEditingWebinarId] = useState<string | null>(null);
   const [webinarsList, setWebinarsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [createFormData, setCreateFormData] = useState({
+  const [formData, setFormData] = useState({
     title: "",
     description: "",
     date: "",
@@ -51,27 +53,60 @@ const MentorWebinarsPage = () => {
     fetchMyWebinars();
   }, []);
 
-  const handleCreateSubmit = async (e: React.FormEvent) => {
+  const handleEditClick = (webinar: any) => {
+    setFormData({
+      title: webinar.title,
+      description: webinar.description,
+      date: webinar.date,
+      time: webinar.time || "",
+      max_attendees: webinar.maxAttendees?.toString() || "100",
+      meet_link: webinar.meet_link || "",
+    });
+    setEditingWebinarId(webinar.id);
+    setIsEditMode(true);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = (open: boolean) => {
+    setShowModal(open);
+    if (!open) {
+      setIsEditMode(false);
+      setEditingWebinarId(null);
+      setFormData({ title: "", description: "", date: "", time: "", max_attendees: "", meet_link: "" });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createFormData.title || !createFormData.description || !createFormData.max_attendees || !createFormData.meet_link) {
+    if (!formData.title || !formData.description || !formData.max_attendees || !formData.meet_link) {
       Swal.error("Kolom Tidak Lengkap", "Silakan lengkapi semua kolom yang bertanda bintang.");
       return;
     }
+
+    const payload = {
+      title: formData.title,
+      description: formData.description,
+      date: formData.date,
+      time: formData.time,
+      max_attendees: parseInt(formData.max_attendees) || 100,
+      meet_link: formData.meet_link,
+    };
+
     try {
-      await api.createWebinar({
-        title: createFormData.title,
-        description: createFormData.description,
-        date: createFormData.date,
-        time: createFormData.time,
-        max_attendees: parseInt(createFormData.max_attendees) || 100,
-        meet_link: createFormData.meet_link,
-      });
-      await Swal.success("Berhasil", "Webinar baru telah sukses dibuat!");
-      setCreateFormData({ title: "", description: "", date: "", time: "", max_attendees: "", meet_link: "" });
-      setShowCreateModal(false);
+      if (isEditMode && editingWebinarId) {
+        await api.updateWebinar(editingWebinarId, payload);
+        await Swal.success("Berhasil", "Webinar berhasil diperbarui!");
+      } else {
+        await api.createWebinar(payload);
+        await Swal.success("Berhasil", "Webinar baru telah sukses dibuat!");
+      }
+      setFormData({ title: "", description: "", date: "", time: "", max_attendees: "", meet_link: "" });
+      setIsEditMode(false);
+      setEditingWebinarId(null);
+      setShowModal(false);
       fetchMyWebinars();
     } catch (error) {
-      Swal.error("Gagal", "Gagal membuat webinar.");
+      Swal.error("Gagal", isEditMode ? "Gagal memperbarui webinar." : "Gagal membuat webinar.");
     }
   };
 
@@ -98,7 +133,7 @@ const MentorWebinarsPage = () => {
       <div className="space-y-6 w-full">
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground">Manage and create webinars for students.</p>
-          <Button className="gradient-primary text-primary-foreground font-semibold" onClick={() => setShowCreateModal(true)}>
+          <Button className="gradient-primary text-primary-foreground font-semibold" onClick={() => setShowModal(true)}>
             <Plus className="h-4 w-4 mr-2" /> Create Webinar
           </Button>
         </div>
@@ -139,7 +174,20 @@ const MentorWebinarsPage = () => {
                       </div>
                     )}
                     <div className="flex gap-2 mt-auto">
-                      <Button variant="outline" size="sm" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleDelete(w.id)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-primary border-primary/30 hover:bg-primary/10"
+                        onClick={() => handleEditClick(w)}
+                      >
+                        <Pencil className="h-4 w-4 mr-1.5" /> Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                        onClick={() => handleDelete(w.id)}
+                      >
                         <Trash2 className="h-4 w-4 mr-1.5" /> Delete
                       </Button>
                     </div>
@@ -151,23 +199,25 @@ const MentorWebinarsPage = () => {
         )}
       </div>
 
-      {/* Create Webinar Modal */}
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+      {/* Create / Edit Webinar Modal */}
+      <Dialog open={showModal} onOpenChange={handleCloseModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Create Webinar</DialogTitle>
+            <DialogTitle>{isEditMode ? "Edit Webinar" : "Create Webinar"}</DialogTitle>
             <DialogDescription>
-              Create a new webinar event for students. Fill in the details below.
+              {isEditMode
+                ? "Update the details of this webinar event."
+                : "Create a new webinar event for students. Fill in the details below."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateSubmit} className="space-y-4 py-4">
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="webinar-title">Title</Label>
               <Input
                 id="webinar-title"
                 placeholder="e.g. Navigating Software Careers"
-                value={createFormData.title}
-                onChange={(e) => setCreateFormData({ ...createFormData, title: e.target.value })}
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 required
               />
             </div>
@@ -176,8 +226,8 @@ const MentorWebinarsPage = () => {
               <Textarea
                 id="webinar-desc"
                 placeholder="e.g. Tips and roadmap for computer science students..."
-                value={createFormData.description}
-                onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
               />
             </div>
@@ -187,8 +237,8 @@ const MentorWebinarsPage = () => {
                 <Input
                   id="webinar-date"
                   type="date"
-                  value={createFormData.date}
-                  onChange={(e) => setCreateFormData({ ...createFormData, date: e.target.value })}
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   required
                 />
               </div>
@@ -197,8 +247,8 @@ const MentorWebinarsPage = () => {
                 <Input
                   id="webinar-time"
                   placeholder="e.g. 14:00"
-                  value={createFormData.time}
-                  onChange={(e) => setCreateFormData({ ...createFormData, time: e.target.value })}
+                  value={formData.time}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                   required
                 />
               </div>
@@ -209,8 +259,8 @@ const MentorWebinarsPage = () => {
                 id="webinar-capacity"
                 type="number"
                 placeholder="e.g. 100"
-                value={createFormData.max_attendees}
-                onChange={(e) => setCreateFormData({ ...createFormData, max_attendees: e.target.value })}
+                value={formData.max_attendees}
+                onChange={(e) => setFormData({ ...formData, max_attendees: e.target.value })}
                 required
               />
             </div>
@@ -219,14 +269,18 @@ const MentorWebinarsPage = () => {
               <Input
                 id="webinar-meet-link"
                 placeholder="e.g. https://meet.google.com/abc-defg-hij"
-                value={createFormData.meet_link}
-                onChange={(e) => setCreateFormData({ ...createFormData, meet_link: e.target.value })}
+                value={formData.meet_link}
+                onChange={(e) => setFormData({ ...formData, meet_link: e.target.value })}
                 required
               />
             </div>
             <DialogFooter>
               <Button type="submit" className="w-full gradient-primary text-primary-foreground font-semibold h-11">
-                Create Webinar
+                {isEditMode ? (
+                  <><Pencil className="h-4 w-4 mr-2" /> Save Changes</>
+                ) : (
+                  <><Plus className="h-4 w-4 mr-2" /> Create Webinar</>
+                )}
               </Button>
             </DialogFooter>
           </form>

@@ -155,9 +155,9 @@ export const api = {
     try {
       return await apiFetch("admin/users/pending");
     } catch (error) {
-      console.warn("Backend pending users API unavailable, returning mock pending users.");
-      
-      // Load offline mock users from localStorage that are pending approval
+      console.warn("Backend pending users API unavailable, returning locally registered pending users only.");
+
+      // Load only users registered offline (via mock register) that are still pending approval
       const mockUsers = JSON.parse(localStorage.getItem("alumni_connect_mock_users") || "[]");
       const pendingFromLocalStorage = mockUsers
         .filter((mu: any) => !mu.user.is_approved)
@@ -166,51 +166,13 @@ export const api = {
           email: mu.user.email,
           role: mu.user.role,
           is_approved: false,
-          verification_document: "verification_documents/mock_ktm.pdf",
+          verification_document: null,
           student_profile: mu.user.student_profile,
           mentor_profile: mu.user.mentor_profile,
           created_at: new Date().toISOString(),
         }));
 
-      // Combine with default mock pending users
-      const defaultMockPending = [
-        {
-          id: "mock-pending-student-1",
-          email: "tony.stark@university.edu",
-          role: "student",
-          is_approved: false,
-          verification_document: "verification_documents/mock_ktm.pdf",
-          student_profile: {
-            full_name: "Tony Stark",
-            major: "Mechanical Engineering",
-            university: "State University",
-          },
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: "mock-pending-alumni-1",
-          email: "bruce.wayne@google.com",
-          role: "alumni",
-          is_approved: false,
-          verification_document: "verification_documents/mock_ijazah.jpg",
-          mentor_profile: {
-            full_name: "Bruce Wayne",
-            title: "CEO",
-            company: "Wayne Enterprises",
-          },
-          created_at: new Date().toISOString(),
-        }
-      ];
-
-      // Filter default mock users by approval/rejection state stored in localStorage
-      const approvedIds = JSON.parse(localStorage.getItem("alumni_connect_approved_mock_ids") || "[]");
-      const rejectedIds = JSON.parse(localStorage.getItem("alumni_connect_rejected_mock_ids") || "[]");
-
-      const activeDefaults = defaultMockPending.filter(
-        (u) => !approvedIds.includes(u.id) && !rejectedIds.includes(u.id)
-      );
-
-      return [...pendingFromLocalStorage, ...activeDefaults];
+      return pendingFromLocalStorage;
     }
   },
 
@@ -295,19 +257,13 @@ export const api = {
     try {
       return await apiFetch("admin/stats");
     } catch (error) {
-      console.warn("Backend admin stats API unavailable, using local dynamic counting.");
-      try {
-        const mentorsList = await api.getMentors();
-        const jobsList = await api.getJobs();
-        return {
-          totalStudents: 156,
-          totalAlumni: mentorsList.length,
-          activeMentorships: 12,
-          jobPostings: jobsList.length,
-        };
-      } catch {
-        return mockData.adminStats;
-      }
+      console.warn("Backend admin stats API unavailable, returning zeros.");
+      return {
+        totalStudents: 0,
+        totalAlumni: 0,
+        activeMentorships: 0,
+        jobPostings: 0,
+      };
     }
   },
 
@@ -368,9 +324,10 @@ export const api = {
         type: j.type,
         deadline: j.deadline ? j.deadline.split("T")[0] : "",
         postedBy: (typeof j.posted_by === "object" && j.posted_by !== null)
-          ? (j.posted_by.full_name || "Alumni Mentor")
-          : (j.posted_by_mentor?.full_name || j.posted_by || "Alumni Mentor"),
+          ? (j.posted_by.student_profile?.full_name || j.posted_by.mentor_profile?.full_name || j.posted_by.full_name || "Alumni Hub User")
+          : (j.posted_by_mentor?.full_name || j.posted_by || "Alumni Hub User"),
         description: j.description,
+        contactEmail: j.contact_email || "",
       }));
     } catch (error) {
       if (search) {
@@ -391,6 +348,7 @@ export const api = {
     type: string;
     deadline: string;
     description: string;
+    contact_email?: string;
   }) => {
     try {
       return await apiFetch("jobs", {
@@ -399,12 +357,59 @@ export const api = {
       });
     } catch (error) {
       console.warn("Backend unavailable, using mock createJob.");
+      const authUser = api.getAuthUser();
+      const userName = authUser?.student_profile?.full_name || authUser?.mentor_profile?.full_name || "Alumni Hub User";
       const mockNewJob = {
         id: Math.random().toString(),
-        ...job,
-        postedBy: "Sarah Chen",
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        type: job.type,
+        deadline: job.deadline,
+        postedBy: userName,
+        description: job.description,
+        contactEmail: job.contact_email || "",
       };
+      mockData.jobs = [mockNewJob, ...mockData.jobs];
       return mockNewJob;
+    }
+  },
+
+  updateJob: async (id: string, job: {
+    title: string;
+    company: string;
+    location: string;
+    type: string;
+    deadline: string;
+    description: string;
+    contact_email?: string;
+  }) => {
+    try {
+      return await apiFetch(`jobs/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(job),
+      });
+    } catch (error) {
+      console.warn("Backend unavailable, using mock updateJob.");
+      mockData.jobs = mockData.jobs.map((j: any) => {
+        if (j.id === id) {
+          const authUser = api.getAuthUser();
+          const userName = authUser?.student_profile?.full_name || authUser?.mentor_profile?.full_name || "Alumni Hub User";
+          return {
+            ...j,
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            type: job.type,
+            deadline: job.deadline,
+            description: job.description,
+            contactEmail: job.contact_email || "",
+            postedBy: userName,
+          };
+        }
+        return j;
+      });
+      return { id, ...job, postedBy: "Sarah Chen" };
     }
   },
 
@@ -413,6 +418,7 @@ export const api = {
       return await apiFetch(`jobs/${id}`, { method: "DELETE" });
     } catch (error) {
       console.warn("Backend unavailable, using mock deleteJob.");
+      mockData.jobs = mockData.jobs.filter((j: any) => j.id !== id);
       return true;
     }
   },
@@ -434,6 +440,7 @@ export const api = {
         attendees: w.registrations_count || 0,
         maxAttendees: w.max_attendees || 100,
         meet_link: w.meet_link || "",
+        isRegistered: !!w.is_registered,
       }));
     } catch (error) {
       return mockData.webinars;
@@ -473,7 +480,60 @@ export const api = {
       });
     } catch (error) {
       console.warn("Backend unavailable, using mock createWebinar.");
-      return { id: Math.random().toString(), ...webinar, attendees: 0, host: "Sarah Chen" };
+      const authUser = api.getAuthUser();
+      const hostName = authUser?.mentor_profile?.full_name || authUser?.student_profile?.full_name || "AlumniHub User";
+      const newWebinar = {
+        id: Math.random().toString(),
+        title: webinar.title,
+        description: webinar.description,
+        date: webinar.date,
+        time: webinar.time,
+        maxAttendees: webinar.max_attendees,
+        meet_link: webinar.meet_link,
+        attendees: 0,
+        host: hostName,
+        isRegistered: false,
+      };
+      mockData.webinars = [newWebinar, ...mockData.webinars];
+      return newWebinar;
+    }
+  },
+
+  updateWebinar: async (id: string, webinar: {
+    title: string;
+    description: string;
+    date: string;
+    time: string;
+    max_attendees: number;
+    meet_link: string;
+  }) => {
+    try {
+      return await apiFetch(`webinars/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(webinar),
+      });
+    } catch (error) {
+      console.warn("Backend unavailable, using mock updateWebinar.");
+      mockData.webinars = mockData.webinars.map((w: any) => {
+        if (w.id === id) {
+          const authUser = api.getAuthUser();
+          const hostName = authUser?.mentor_profile?.full_name || authUser?.student_profile?.full_name || "Alumni Hub User";
+          return {
+            ...w,
+            title: webinar.title,
+            description: webinar.description,
+            date: webinar.date,
+            time: webinar.time,
+            maxAttendees: webinar.max_attendees,
+            meet_link: webinar.meet_link,
+            host: hostName,
+          };
+        }
+        return w;
+      });
+      const authUser = api.getAuthUser();
+      const hostName = authUser?.mentor_profile?.full_name || authUser?.student_profile?.full_name || "AlumniHub User";
+      return { id, ...webinar, attendees: 0, host: hostName };
     }
   },
 
@@ -561,11 +621,14 @@ export const api = {
       });
     } catch (error) {
       console.warn("Backend unavailable, using mock createForumPost.");
+      const authUser = api.getAuthUser();
+      const authorName = authUser?.student_profile?.full_name || authUser?.mentor_profile?.full_name || "AlumniHub User";
+      const authorRole = authUser?.role === "alumni" ? "Alumni" : "Student";
       const mockNewPost = {
         id: Math.random().toString(),
         title: post.title,
-        author: "Alex Johnson",
-        authorRole: "Student",
+        author: authorName,
+        authorRole,
         date: new Date().toISOString().split("T")[0],
         replies: 0,
         likes: 0,
@@ -613,11 +676,11 @@ export const api = {
     }
   },
 
-  updateSessionStatus: async (id: string, status: "pending" | "upcoming" | "completed" | "declined") => {
+  updateSessionStatus: async (id: string, status: "pending" | "upcoming" | "completed" | "declined", meet_link?: string) => {
     try {
       return await apiFetch(`mentorship-sessions/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, meet_link }),
       });
     } catch (error) {
       console.warn("Backend unavailable, using mock updateSessionStatus.");

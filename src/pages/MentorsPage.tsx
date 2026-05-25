@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Search, Star, MessageSquare, Route } from "lucide-react";
+import { Search, MessageSquare, Route } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { api } from "@/lib/api";
@@ -84,9 +84,8 @@ const MentorsPage = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-                      <span className="flex items-center gap-1 text-warning"><Star className="h-3.5 w-3.5 fill-current" /> {m.rating}</span>
                       <span>{m.sessions} sessions</span>
-                      <span>Class of {m.graduationYear}</span>
+                      <span>Graduated in {m.graduationYear}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">{m.bio}</p>
                   </CardContent>
@@ -125,10 +124,6 @@ const MentorsPage = () => {
                   <div>
                     <p className="text-muted-foreground mb-1">Graduation Year</p>
                     <p className="font-medium">{selectedMentor.graduationYear}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1">Rating</p>
-                    <p className="font-medium flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-warning text-warning" /> {selectedMentor.rating}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground mb-1">Sessions Completed</p>

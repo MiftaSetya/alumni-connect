@@ -68,7 +68,7 @@ const MentorProfilePage = () => {
     }
   };
 
-  const initialAvatar = formData.fullName ? formData.fullName.substring(0, 2).toUpperCase() : "SC";
+  const initialAvatar = formData.fullName ? formData.fullName.substring(0, 2).toUpperCase() : "";
 
   return (
     <MentorLayout title="Profile">

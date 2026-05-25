@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { MapPin, Calendar, Briefcase, Plus, Trash2 } from "lucide-react";
+import { MapPin, Calendar, Briefcase, Plus, Trash2, Mail, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 import { Swal } from "@/lib/alert";
 import { useState, useEffect } from "react";
@@ -13,6 +13,8 @@ import { api } from "@/lib/api";
 
 const MentorPostJobPage = () => {
   const [showModal, setShowModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [jobsList, setJobsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
@@ -22,6 +24,7 @@ const MentorPostJobPage = () => {
     type: "",
     deadline: "",
     description: "",
+    contact_email: "",
   });
 
   const fetchMyJobs = async () => {
@@ -43,6 +46,38 @@ const MentorPostJobPage = () => {
     fetchMyJobs();
   }, []);
 
+  const handleEditClick = (job: any) => {
+    setFormData({
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      type: job.type,
+      deadline: job.deadline,
+      description: job.description,
+      contact_email: job.contactEmail || "",
+    });
+    setEditingJobId(job.id);
+    setIsEditMode(true);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = (open: boolean) => {
+    setShowModal(open);
+    if (!open) {
+      setIsEditMode(false);
+      setEditingJobId(null);
+      setFormData({
+        title: "",
+        company: "",
+        location: "",
+        type: "",
+        deadline: "",
+        description: "",
+        contact_email: "",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.type) {
@@ -50,13 +85,20 @@ const MentorPostJobPage = () => {
       return;
     }
     try {
-      await api.createJob(formData);
-      await Swal.success("Berhasil", "Lowongan pekerjaan berhasil diposting!");
-      setFormData({ title: "", company: "", location: "", type: "", deadline: "", description: "" });
+      if (isEditMode && editingJobId) {
+        await api.updateJob(editingJobId, formData);
+        await Swal.success("Berhasil", "Lowongan pekerjaan berhasil diperbarui!");
+      } else {
+        await api.createJob(formData);
+        await Swal.success("Berhasil", "Lowongan pekerjaan berhasil diposting!");
+      }
+      setFormData({ title: "", company: "", location: "", type: "", deadline: "", description: "", contact_email: "" });
+      setIsEditMode(false);
+      setEditingJobId(null);
       setShowModal(false);
       fetchMyJobs();
     } catch (error) {
-      Swal.error("Gagal", "Gagal memposting lowongan pekerjaan.");
+      Swal.error("Gagal", isEditMode ? "Gagal memperbarui lowongan pekerjaan." : "Gagal memposting lowongan pekerjaan.");
     }
   };
 
@@ -113,15 +155,25 @@ const MentorPostJobPage = () => {
                           <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {j.location}</span>
                             <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Deadline: {j.deadline}</span>
+                            {j.contactEmail && (
+                              <span className="flex items-center gap-1 text-primary/80">
+                                <Mail className="h-3.5 w-3.5" /> {j.contactEmail}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-2">{j.description}</p>
+                          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{j.description}</p>
                         </div>
                       </div>
-                      <div className="flex sm:flex-col items-center sm:items-end gap-2">
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
                         <Badge variant="secondary">{j.type}</Badge>
-                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(j.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost" className="text-muted-foreground hover:bg-muted" onClick={() => handleEditClick(j)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(j.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -133,11 +185,13 @@ const MentorPostJobPage = () => {
       </div>
 
       {/* Post Job Modal */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      <Dialog open={showModal} onOpenChange={handleCloseModal}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Post New Job</DialogTitle>
-            <DialogDescription>Fill in the details to create a new job posting for students.</DialogDescription>
+            <DialogTitle>{isEditMode ? "Edit Job Posting" : "Post New Job"}</DialogTitle>
+            <DialogDescription>
+              {isEditMode ? "Update the details of this job posting." : "Fill in the details to create a new job posting for students."}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div>
@@ -191,6 +245,17 @@ const MentorPostJobPage = () => {
               />
             </div>
             <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">
+                Contact Email <span className="text-muted-foreground font-normal">(for applications)</span>
+              </label>
+              <Input
+                type="email"
+                placeholder="e.g. recruiter@company.com"
+                value={formData.contact_email}
+                onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+              />
+            </div>
+            <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Description</label>
               <textarea
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -202,7 +267,7 @@ const MentorPostJobPage = () => {
             </div>
             <DialogFooter>
               <Button type="submit" className="w-full gradient-primary text-primary-foreground font-semibold h-11">
-                <Plus className="h-4 w-4 mr-2" /> Post Job
+                {isEditMode ? <><Pencil className="h-4 w-4 mr-2" /> Save Changes</> : <><Plus className="h-4 w-4 mr-2" /> Post Job</>}
               </Button>
             </DialogFooter>
           </form>

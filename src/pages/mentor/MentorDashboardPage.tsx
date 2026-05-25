@@ -2,7 +2,7 @@ import { MentorLayout } from "@/components/MentorLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, Briefcase, Video, CalendarCheck, ArrowRight, Calendar } from "lucide-react";
+import { Briefcase, Video, CalendarCheck, ArrowRight, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -46,19 +46,30 @@ const MentorDashboardPage = () => {
     fetchData();
   }, []);
 
-  const mentorName = currentUser?.mentor_profile?.full_name || currentUser?.student_profile?.full_name || "Sarah Chen";
+  const mentorName = currentUser?.mentor_profile?.full_name || currentUser?.student_profile?.full_name || "";
+
+  const completedSessions = Array.isArray(sessions)
+    ? sessions.filter((s: any) => s.status === "completed").length
+    : 0;
+
+  const upcomingSessions = Array.isArray(sessions)
+    ? sessions
+        .filter((s: any) => s.status === "pending" || s.status === "upcoming")
+        .slice(0, 3)
+        .map((s: any) => ({
+          id: s.id,
+          mentee: s.student?.full_name || s.student_name || "Student",
+          avatar: (s.student?.full_name || s.student_name || "S").substring(0, 2).toUpperCase(),
+          topic: s.topic || s.notes || "Mentoring Session",
+          date: s.date ? s.date.split("T")[0] : "",
+          time: s.time || "",
+        }))
+    : [];
 
   const statCards = [
-    { label: "Mentees", value: loading ? "..." : "3", icon: Users, color: "text-primary" },
-    { label: "Sessions Completed", value: loading ? "..." : "12", icon: CalendarCheck, color: "text-success" },
+    { label: "Sessions Completed", value: loading ? "..." : completedSessions.toString(), icon: CalendarCheck, color: "text-success" },
     { label: "Jobs Posted", value: loading ? "..." : myJobs.length.toString(), icon: Briefcase, color: "text-warning" },
     { label: "Webinars Hosted", value: loading ? "..." : myWebinars.length.toString(), icon: Video, color: "text-info" },
-  ];
-
-  const upcomingSessions = [
-    { id: "1", mentee: "Alex Johnson", avatar: "AJ", topic: "Career Guidance in Tech", date: "2026-04-21", time: "10:00" },
-    { id: "2", mentee: "Priya Sharma", avatar: "PS", topic: "Resume Review", date: "2026-04-22", time: "14:00" },
-    { id: "3", mentee: "Lisa Wang", avatar: "LW", topic: "Interview Preparation", date: "2026-04-23", time: "11:00" },
   ];
 
   return (
@@ -71,15 +82,17 @@ const MentorDashboardPage = () => {
           className="gradient-hero rounded-xl p-6 lg:p-8"
         >
           <h2 className="text-2xl lg:text-3xl font-display font-bold text-primary-foreground mb-2">
-            Welcome back, {mentorName}! 👋
+            Welcome back, {mentorName}!
           </h2>
           <p className="text-primary-foreground/80 max-w-xl">
-            You have {upcomingSessions.length} upcoming mentoring sessions this week. Keep inspiring the next generation!
+            {upcomingSessions.length > 0
+              ? `You have ${upcomingSessions.length} pending or upcoming mentoring session${upcomingSessions.length > 1 ? "s" : ""}. Keep inspiring the next generation!`
+              : "You have no upcoming sessions. Share your expertise by creating webinars or posting job referrals!"}
           </p>
         </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {statCards.map((stat, i) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Card className="card-elevated">
@@ -107,23 +120,29 @@ const MentorDashboardPage = () => {
               </Link>
             </CardHeader>
             <CardContent className="space-y-3">
-              {upcomingSessions.map((s) => (
-                <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">{s.avatar}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{s.mentee}</p>
-                    <p className="text-xs text-muted-foreground truncate">{s.topic}</p>
+              {loading ? (
+                <div className="text-center py-6 text-muted-foreground animate-pulse">Loading sessions...</div>
+              ) : upcomingSessions.length === 0 ? (
+                <div className="text-center py-6 text-xs text-muted-foreground">No upcoming or pending sessions.</div>
+              ) : (
+                upcomingSessions.map((s) => (
+                  <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">{s.avatar}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{s.mentee}</p>
+                      <p className="text-xs text-muted-foreground truncate">{s.topic}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> {formatDate(s.date)}
+                      </p>
+                      <p className="text-xs text-primary font-medium">{formatTime(s.time)}</p>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3 w-3" /> {formatDate(s.date)}
-                    </p>
-                    <p className="text-xs text-primary font-medium">{formatTime(s.time)}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
 

@@ -3,7 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Calendar, Clock, CheckCircle, XCircle, Video } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { Swal } from "@/lib/alert";
 import { useState, useEffect } from "react";
@@ -13,6 +16,9 @@ import { formatDate, formatTime } from "@/lib/format";
 const MentorSessionsPage = () => {
   const [sessionsList, setSessionsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [meetLink, setMeetLink] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const fetchSessions = async () => {
     try {
@@ -22,23 +28,18 @@ const MentorSessionsPage = () => {
         setSessionsList(
           data.map((s: any) => ({
             id: s.id,
-            mentee: s.student?.full_name || "Student",
-            avatar: s.student?.full_name ? s.student.full_name.substring(0, 2).toUpperCase() : "ST",
+            mentee: s.student_name || s.student?.studentProfile?.full_name || s.student?.full_name || "Student",
+            avatar: (s.student_name || s.student?.studentProfile?.full_name || s.student?.full_name || "ST").substring(0, 2).toUpperCase(),
             topic: s.topic,
             date: s.date ? s.date.split("T")[0] : "",
             time: s.time,
-            duration: s.duration || "45 min",
             status: s.status,
+            meet_link: s.meet_link,
             message: s.message || "No message provided.",
           }))
         );
       } else {
-        setSessionsList([
-          { id: "1", mentee: "Alex Johnson", avatar: "AJ", topic: "Career Guidance in Tech", date: "2026-04-21", time: "10:00", duration: "45 min", status: "upcoming", message: "I'd love to discuss career paths in software engineering." },
-          { id: "2", mentee: "Priya Sharma", avatar: "PS", topic: "Resume Review", date: "2026-04-22", time: "14:00", duration: "30 min", status: "upcoming", message: "Could you review my PM resume?" },
-          { id: "3", mentee: "Lisa Wang", avatar: "LW", topic: "Interview Preparation", date: "2026-04-23", time: "11:00", duration: "60 min", status: "upcoming", message: "I have an upcoming interview at Meta." },
-          { id: "4", mentee: "James Lee", avatar: "JL", topic: "System Design Discussion", date: "2026-04-15", time: "15:00", duration: "45 min", status: "completed", message: "Thanks for the great session on system design!" }
-        ]);
+        setSessionsList([]);
       }
     } catch (error) {
       console.error("Error fetching sessions:", error);
@@ -50,6 +51,25 @@ const MentorSessionsPage = () => {
   useEffect(() => {
     fetchSessions();
   }, []);
+
+  const handleConfirmClick = (id: string) => {
+    setSelectedSessionId(id);
+    setMeetLink("");
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSessionId || !meetLink) return;
+    try {
+      await api.updateSessionStatus(selectedSessionId, "upcoming", meetLink);
+      await Swal.success("Berhasil", "Sesi mentoring berhasil disetujui!");
+      setShowConfirmModal(false);
+      fetchSessions();
+    } catch (error) {
+      Swal.error("Gagal", "Gagal menyetujui sesi mentoring.");
+    }
+  };
 
   const handleUpdateStatus = async (id: string, status: "pending" | "upcoming" | "completed" | "declined") => {
     if (status === "declined") {
@@ -65,7 +85,7 @@ const MentorSessionsPage = () => {
       await api.updateSessionStatus(id, status);
       await Swal.success(
         "Berhasil",
-        status === "upcoming" ? "Sesi mentoring berhasil disetujui!" : "Sesi mentoring telah ditolak."
+        status === "completed" ? "Sesi mentoring telah diselesaikan!" : "Sesi mentoring telah ditolak."
       );
       fetchSessions();
     } catch (error) {
@@ -108,19 +128,38 @@ const MentorSessionsPage = () => {
                             <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
                               <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {formatDate(s.date)}</span>
                               <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {formatTime(s.time)}</span>
-                              <Badge variant="outline" className="text-xs">{s.duration}</Badge>
                               {s.status === "pending" && <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">Pending</Badge>}
                             </div>
                             <p className="text-sm text-muted-foreground mt-2 max-w-xl">{s.message}</p>
                           </div>
                         </div>
-                        <div className="flex sm:flex-col items-center gap-2 flex-shrink-0">
-                          <Button size="sm" className="gradient-primary text-primary-foreground font-semibold" onClick={() => handleUpdateStatus(s.id, "upcoming")}>
-                            <CheckCircle className="h-4 w-4 mr-1.5" /> Confirm
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleUpdateStatus(s.id, "declined")}>
-                            <XCircle className="h-4 w-4 mr-1.5" /> Decline
-                          </Button>
+                        <div className="flex sm:flex-col items-stretch gap-2 flex-shrink-0 min-w-[120px]">
+                          {s.status === "pending" ? (
+                            <>
+                              <Button size="sm" className="gradient-primary text-primary-foreground font-semibold w-full" onClick={() => handleConfirmClick(s.id)}>
+                                <CheckCircle className="h-4 w-4 mr-1.5" /> Confirm
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 w-full" onClick={() => handleUpdateStatus(s.id, "declined")}>
+                                <XCircle className="h-4 w-4 mr-1.5" /> Decline
+                              </Button>
+                            </>
+                          ) : s.status === "upcoming" ? (
+                            <>
+                              <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold w-full" onClick={() => handleUpdateStatus(s.id, "completed")}>
+                                <CheckCircle className="h-4 w-4 mr-1.5" /> Complete
+                              </Button>
+                              {s.meet_link && (
+                                <a
+                                  href={s.meet_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center gap-1.5 text-xs h-9 px-3 rounded-md bg-secondary/80 hover:bg-secondary text-foreground border font-semibold transition-colors w-full"
+                                >
+                                  <Video className="h-3.5 w-3.5" /> Join Meet
+                                </a>
+                              )}
+                            </>
+                          ) : null}
                         </div>
                       </div>
                     </CardContent>
@@ -160,7 +199,6 @@ const MentorSessionsPage = () => {
                             <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
                               <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {formatDate(s.date)}</span>
                               <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {formatTime(s.time)}</span>
-                              <Badge variant="outline" className="text-xs">{s.duration}</Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mt-2 max-w-xl">{s.message}</p>
                           </div>
@@ -177,6 +215,41 @@ const MentorSessionsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal for GMeet Link */}
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={handleConfirmSubmit}>
+            <DialogHeader>
+              <DialogTitle>Confirm Mentoring Session</DialogTitle>
+              <DialogDescription>
+                Provide a meeting link (Google Meet, Zoom, etc.) for the student to join this mentoring session.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="meet_link" className="text-sm font-medium">Meeting Link</Label>
+                <Input
+                  id="meet_link"
+                  placeholder="https://meet.google.com/xxx-yyyy-zzz"
+                  value={meetLink}
+                  onChange={(e) => setMeetLink(e.target.value)}
+                  type="url"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowConfirmModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="gradient-primary text-primary-foreground">
+                Confirm & Send Link
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </MentorLayout>
   );
 };
